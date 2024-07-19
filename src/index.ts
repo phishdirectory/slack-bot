@@ -13,6 +13,8 @@ import { newDomainEndpoint } from "./endpoints/newDomain";
 import { t } from "./lib/templates";
 import { blog, slog } from "./util/Logger";
 
+type Classification = "postal" | "banking" | "item_scams" | "other";
+
 const receiver = new ExpressReceiver({
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
 });
@@ -26,6 +28,7 @@ const app = new App({
 
 app.event(/.*/, async ({ event, client }) => {
   try {
+    // console.log(event);
     switch (event.type) {
       case "team_join":
         break;
@@ -42,12 +45,35 @@ app.action(/.*?/, async (args) => {
 
     await ack();
 
-    console.log(payload);
-
     // @ts-ignore
     switch (payload.action_id) {
       case "domain_classification":
-        // todo: actually do stuff here
+        console.log("domain_classification");
+        console.log(payload);
+
+        /*
+        {
+  type: 'static_select',
+  action_id: 'domain_classification',
+  block_id: '85m4x',
+  selected_option: {
+    text: { type: 'plain_text', text: 'Postal', emoji: true },
+    value: 'postal'
+  },
+  placeholder: { type: 'plain_text', text: 'Select an item', emoji: true },
+  action_ts: '1721416557.474940'
+}
+  */
+
+        // thats the payload, destrucure it
+        // @ts-expect-error
+        const { selected_option } = payload;
+
+        let classification = selected_option.value;
+        console.log(classification);
+
+        // use chat.update to update the message with the classification (and remove the dropdown)
+
         break;
     }
   } catch (error) {

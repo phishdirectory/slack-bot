@@ -41,26 +41,34 @@ export async function sendNewDomainMessage(app: App, domain: String) {
               {
                 text: {
                   type: "plain_text",
-                  text: "Class 1",
+                  text: "Postal",
                   emoji: true,
                 },
-                value: "value-0",
+                value: "postal",
               },
               {
                 text: {
                   type: "plain_text",
-                  text: "Class 2",
+                  text: "Banking",
                   emoji: true,
                 },
-                value: "value-1",
+                value: "banking",
               },
               {
                 text: {
                   type: "plain_text",
-                  text: "Class 3",
+                  text: "Item Scams",
                   emoji: true,
                 },
-                value: "value-2",
+                value: "item-scams",
+              },
+              {
+                text: {
+                  type: "plain_text",
+                  text: "Other",
+                  emoji: true,
+                },
+                value: "other",
               },
             ],
             action_id: "domain_classification",
@@ -71,7 +79,6 @@ export async function sendNewDomainMessage(app: App, domain: String) {
         },
       ],
     });
-    console.log(result);
   } catch (error) {
     console.error(error);
   }
