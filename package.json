@@ -1,0 +1,53 @@
+{
+  "name": "",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "maintainers": [
+    {
+      "name": "Jasper Mayone",
+      "email": "me@jaspermayone.com",
+      "url": "https://jaspermayone.com"
+    }
+  ],
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "nodemon src/index.ts"
+  },
+  "keywords": [],
+  "author": "Jasper Mayone <me@jaspermayone.com>",
+  "dependencies": {
+    "@slack/bolt": "^3.18.0",
+    "@slack/web-api": "^7.0.4",
+    "@types/express": "^4.17.21",
+    "async": "^3.2.5",
+    "axios": "^1.7.2",
+    "bottleneck": "^2.19.5",
+    "colors": "^1.4.0",
+    "cron": "^3.1.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "form-data": "^4.0.0",
+    "js-yaml": "^4.1.0",
+    "node-fetch": "2",
+    "node-statsd": "^0.1.1",
+    "nodemon": "^3.0.3",
+    "postgres": "^3.4.4",
+    "response-time": "^2.3.2",
+    "tsx": "^4.9.3",
+    "yaml": "^2.4.5"
+  },
+  "devDependencies": {
+    "@types/async": "^3.2.24",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node-statsd": "^0.1.6",
+    "@types/response-time": "^2.3.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.4.0"
+  }
+}

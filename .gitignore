@@ -1,0 +1,7 @@
+.env
+prod.env
+node_modules/*
+.vscode/*
+yarn.lock
+dist/
+ignore/
