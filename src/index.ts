@@ -42,12 +42,12 @@ app.action(/.*?/, async (args) => {
 
     await ack();
 
-    // @ts-ignore
-    metrics.increment(`slack.action.${payload.value}`);
+    console.log(payload);
 
     // @ts-ignore
     switch (payload.action_id) {
-      case "initial":
+      case "domain_classification":
+        // todo: actually do stuff here
         break;
     }
   } catch (error) {

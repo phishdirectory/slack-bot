@@ -63,7 +63,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                 value: "value-2",
               },
             ],
-            action_id: "static_select-action",
+            action_id: "domain_classification",
           },
         },
         {
