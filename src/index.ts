@@ -70,7 +70,7 @@ app.action(/.*?/, async (args) => {
         });
 
         let rsp = await axios.post(
-          `http://localhost:3000/domain/verdict?key=${process.env.SECRET_KEY}&domain=${domain}&suser=${actionUser}&verdict=${classif}`
+          `https://api.phish.directory/domain/verdict?key=${process.env.SECRET_KEY}&domain=${domain}&suser=${actionUser}&verdict=${classif}`
         );
 
         let classmsg = await client.chat.postMessage({
