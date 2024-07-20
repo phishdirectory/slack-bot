@@ -36,46 +36,21 @@ const app = new App({
   receiver,
 });
 
-app.event(/.*/, async ({ event, client }) => {
-  try {
-    // console.log(event);
-    switch (event.type) {
-      case "team_join":
-        break;
-    }
-  } catch (error) {
-    blog(`Error in event handler: ${error}`, "error");
-  }
-});
+app.event(/.*/, async ({ event, client }) => {});
 
 app.action(/.*?/, async (args) => {
   try {
     const { ack, respond, payload, client, body } = args;
     const user = body.user.id;
 
+    let actionUser = body.user.id!;
+
     await ack();
 
     // @ts-ignore
     switch (payload.action_id) {
       case "domain_classification":
-        console.log("domain_classification");
         // console.log(payload);
-
-        /*
-        {
-  type: 'static_select',
-  action_id: 'domain_classification',
-  block_id: '85m4x',
-  selected_option: {
-    text: { type: 'plain_text', text: 'Postal', emoji: true },
-    value: 'postal'
-  },
-  placeholder: { type: 'plain_text', text: 'Select an item', emoji: true },
-  action_ts: '1721416557.474940'
-}
-  */
-
-        console.log(payload);
 
         // @ts-expect-error
         let rawData = payload.selected_option.value;
@@ -86,6 +61,7 @@ app.action(/.*?/, async (args) => {
 
         // @ts-expect-error
         let classif = payload.selected_option.text.text;
+        classif = classif.toLowerCase();
 
         await client.chat.delete({
           token: process.env.SLACK_BOT_TOKEN,
@@ -93,15 +69,48 @@ app.action(/.*?/, async (args) => {
           ts: ts,
         });
 
-        await client.chat.postMessage({
+        let rsp = await axios.post(
+          `http://localhost:3000/domain/verdict?key=${process.env.SECRET_KEY}&domain=${domain}&suser=${actionUser}&verdict=${classif}`
+        );
+
+        let classmsg = await client.chat.postMessage({
           token: process.env.SLACK_BOT_TOKEN,
           channel: feedChannel,
-          text: `> Domain: ${domain} has been classified as ${classif} by <@${user}>`,
+          text: `> Domain: ${domain} has been classified as ${classif} by <@${actionUser}>`,
         });
 
-        // console.log(data);
+        let classTs = classmsg.ts;
 
-        // use chat.update to update the message with the classification (and remove the dropdown)
+        if (rsp.data === "Verdict added") {
+          await client.chat.postMessage({
+            token: process.env.SLACK_BOT_TOKEN,
+            channel: feedChannel,
+            text: `API Successfully responded with: ${rsp.data}`,
+            thread_ts: classTs,
+          });
+
+          // react to the top level message
+          await client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: "white_check_mark",
+            channel: feedChannel,
+            timestamp: classTs,
+          });
+        } else {
+          await client.chat.postMessage({
+            token: process.env.SLACK_BOT_TOKEN,
+            channel: feedChannel,
+            text: `API responded with: ${rsp.data}`,
+            thread_ts: classTs,
+          });
+
+          await client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: "x",
+            channel: feedChannel,
+            timestamp: classTs,
+          });
+        }
 
         break;
     }

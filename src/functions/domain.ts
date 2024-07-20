@@ -92,14 +92,14 @@ export async function sendNewDomainMessage(app: App, domain: String) {
         ],
       })
       .then(async (result) => {
-        console.log(result);
+        // console.log(result);
 
         let ts = result.ts!;
         // @ts-expect-error
         let domain = result.message!.blocks[1].text.text.split("_")[1];
 
-        console.log(ts);
-        console.log(domain);
+        // console.log(ts);
+        // console.log(domain);
 
         let data = {
           domain: domain,
