@@ -5,7 +5,6 @@ import { App, ExpressReceiver } from "@slack/bolt";
 import axios from "axios";
 import colors from "colors";
 import express from "express";
-import responseTime from "response-time";
 
 import { indexEndpoint } from "./endpoints";
 import { healthEndpoint } from "./endpoints/health";
@@ -14,6 +13,17 @@ import { t } from "./lib/templates";
 import { blog, slog } from "./util/Logger";
 
 type Classification = "postal" | "banking" | "item_scams" | "other";
+
+let reviewChannel;
+let feedChannel;
+
+if (process.env.NODE_ENV === "production") {
+  reviewChannel = "C07DP360WDP"; // phish-classification
+  feedChannel = "C07CX5WELQ6"; // fish-feed
+} else {
+  reviewChannel = "C069N64PW4A";
+  feedChannel = "C07DACVT0HG";
+}
 
 const receiver = new ExpressReceiver({
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
@@ -49,7 +59,7 @@ app.action(/.*?/, async (args) => {
     switch (payload.action_id) {
       case "domain_classification":
         console.log("domain_classification");
-        console.log(payload);
+        // console.log(payload);
 
         /*
         {
@@ -65,12 +75,31 @@ app.action(/.*?/, async (args) => {
 }
   */
 
-        // thats the payload, destrucure it
-        // @ts-expect-error
-        const { selected_option } = payload;
+        console.log(payload);
 
-        let classification = selected_option.value;
-        console.log(classification);
+        // @ts-expect-error
+        let rawData = payload.selected_option.value;
+        let data = JSON.parse(rawData);
+
+        let domain = data.domain;
+        let ts = data.ts;
+
+        // @ts-expect-error
+        let classif = payload.selected_option.text.text;
+
+        await client.chat.delete({
+          token: process.env.SLACK_BOT_TOKEN,
+          channel: reviewChannel,
+          ts: ts,
+        });
+
+        await client.chat.postMessage({
+          token: process.env.SLACK_BOT_TOKEN,
+          channel: feedChannel,
+          text: `> Domain: ${domain} has been classified as ${classif} by <@${user}>`,
+        });
+
+        // console.log(data);
 
         // use chat.update to update the message with the classification (and remove the dropdown)
 
@@ -97,19 +126,6 @@ receiver.router.get("/up", healthEndpoint);
 receiver.router.get("/newDomain", (req, res) => {
   newDomainEndpoint(req, res, app);
 });
-
-receiver.router.use(
-  responseTime((req, res, time) => {
-    const stat = (req.method + "/" + req.url?.split("/")[1])
-      .toLowerCase()
-      .replace(/[:.]/g, "")
-      .replace(/\//g, "_");
-
-    const httpCode = res.statusCode;
-    const timingStatKey = `http.response.${stat}`;
-    const codeStatKey = `http.response.${stat}.${httpCode}`;
-  })
-);
 
 app.use(async ({ payload, next }) => {
   await next();
