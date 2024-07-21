@@ -1,0 +1,48 @@
+display_information:
+  name: phish.directory
+  description: Protecting the internet from sharks 🦈
+  background_color: "#408da3"
+features:
+  bot_user:
+    display_name: phish.directory
+    always_online: true
+  shortcuts:
+    - name: Report a Phishing Link
+      type: message
+      callback_id: report_phishing_link
+      description: Reports link as phishing inside a message
+  slash_commands:
+    - command: /ping
+      url: https://phishbot.jmayone.hackclub.app/slack/events
+      description: Pong!
+      should_escape: false
+    - command: /report
+      url: https://phishbot.jmayone.hackclub.app/slack/events
+      description: Reports a domain.
+      usage_hint: "[domain]"
+      should_escape: false
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - chat:write
+      - chat:write.customize
+      - chat:write.public
+      - commands
+      - groups:history
+      - workflow.steps:execute
+      - reactions:write
+      - reactions:read
+settings:
+  event_subscriptions:
+    request_url: https://phishbot.jmayone.hackclub.app/slack/events
+    bot_events:
+      - message.channels
+      - message.groups
+  interactivity:
+    is_enabled: true
+    request_url: https://phishbot.jmayone.hackclub.app/slack/events
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
