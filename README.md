@@ -1,2 +1,1 @@
-# slack-mirror
-# slackbot-template
+# phishbot
