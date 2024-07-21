@@ -1,4 +1,5 @@
 import { App } from "@slack/bolt";
+import { Classification } from "../types";
 
 let reviewChannel;
 let feedChannel;
@@ -101,12 +102,19 @@ export async function sendNewDomainMessage(app: App, domain: String) {
         // console.log(ts);
         // console.log(domain);
 
-        let data = {
-          domain: domain,
-          ts: ts,
-        };
-
-        let dataString = JSON.stringify(data);
+        // create a function that takes in domain and ts, as well as the classification and then returns the json data
+        async function createData(
+          domain: String,
+          ts: String,
+          classification: Classification
+        ) {
+          let data = {
+            domain: domain,
+            ts: ts,
+            classification: classification,
+          };
+          return JSON.stringify(data);
+        }
 
         await app.client.chat.update({
           token: process.env.SLACK_BOT_TOKEN,
@@ -151,7 +159,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                       text: "Postal",
                       emoji: true,
                     },
-                    value: `${dataString}`,
+                    value: `${await createData(domain, ts, "postal")}`,
                   },
                   {
                     text: {
@@ -159,7 +167,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                       text: "Banking",
                       emoji: true,
                     },
-                    value: `${dataString}`,
+                    value: `${await createData(domain, ts, "banking")}`,
                   },
                   {
                     text: {
@@ -167,7 +175,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                       text: "Item Scams",
                       emoji: true,
                     },
-                    value: `${dataString}`,
+                    value: `${await createData(domain, ts, "item_scams")}`,
                   },
                   {
                     text: {
@@ -175,7 +183,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                       text: "Other",
                       emoji: true,
                     },
-                    value: `${dataString}`,
+                    value: `${await createData(domain, ts, "other")}`,
                   },
                 ],
                 action_id: "domain_classification",

@@ -5,17 +5,17 @@ import { App, ExpressReceiver } from "@slack/bolt";
 import axios from "axios";
 import colors from "colors";
 import express from "express";
+import moment from "moment";
 
 import { indexEndpoint } from "./endpoints";
 import { healthEndpoint } from "./endpoints/health";
 import { newDomainEndpoint } from "./endpoints/newDomain";
+import { sendNewDomainMessage } from "./functions/domain";
 import { t } from "./lib/templates";
 import { blog, slog } from "./util/Logger";
 
-type Classification = "postal" | "banking" | "item_scams" | "other";
-
-let reviewChannel;
-let feedChannel;
+let reviewChannel: string;
+let feedChannel: string;
 
 if (process.env.NODE_ENV === "production") {
   reviewChannel = "C07DP360WDP"; // phish-classification
@@ -58,10 +58,7 @@ app.action(/.*?/, async (args) => {
 
         let domain = data.domain;
         let ts = data.ts;
-
-        // @ts-expect-error
-        let classif = payload.selected_option.text.text;
-        classif = classif.toLowerCase();
+        let classification = data.classification;
 
         await client.chat.delete({
           token: process.env.SLACK_BOT_TOKEN,
@@ -69,14 +66,22 @@ app.action(/.*?/, async (args) => {
           ts: ts,
         });
 
+        let baseUrl: string;
+
+        if (process.env.NODE_ENV === "production") {
+          baseUrl = "https://api.phish.directory";
+        } else {
+          baseUrl = "http://localhost:3000";
+        }
+
         let rsp = await axios.post(
-          `https://api.phish.directory/domain/verdict?key=${process.env.SECRET_KEY}&domain=${domain}&suser=${actionUser}&verdict=${classif}`
+          `${baseUrl}/domain/verdict?key=${process.env.SECRET_KEY}&domain=${domain}&suser=${actionUser}&verdict=${classification}`
         );
 
         let classmsg = await client.chat.postMessage({
           token: process.env.SLACK_BOT_TOKEN,
           channel: feedChannel,
-          text: `> Domain: ${domain} has been classified as ${classif} by <@${actionUser}>`,
+          text: `> Domain: ${domain} has been classified as ${classification} by <@${actionUser}>`,
         });
 
         let classTs = classmsg.ts;
@@ -122,7 +127,78 @@ app.action(/.*?/, async (args) => {
 app.command(/.*?/, async ({ ack, body, client }) => {
   try {
     await ack();
-    // This is not used
+
+    let user = body.user_id;
+    let channel = body.channel_id;
+    let command = body.command;
+
+    switch (command) {
+      case "/ping":
+        let uptime = process.uptime();
+        // format the uptime
+        let uptimeString = new Date(uptime * 1000).toISOString().substr(11, 8);
+
+        let dateStarted = new Date(Date.now() - uptime * 1000);
+        // format the date started with moment
+        let dateStartedFormatted =
+          moment(dateStarted).format("MM-DD-YY H:m:s A Z");
+
+        await client.chat.postEphemeral({
+          token: process.env.SLACK_BOT_TOKEN,
+          user: user,
+          channel: body.channel_id,
+          text: `Pong! 🏓 \n\n I've been awake for ${uptimeString}, I got up at ${dateStartedFormatted}!`,
+        });
+        break;
+      case "/report":
+        let domain = body.text;
+
+        if (!domain) {
+          await client.chat.postEphemeral({
+            token: process.env.SLACK_BOT_TOKEN,
+            user: user,
+            channel: channel,
+            text: "Please provide a domain to report",
+          });
+          return;
+        }
+
+        // check if the domain is a valid domain, or if it has things like a protocol or spaces (which makes it a url)
+        // evalueates using this regex: ^(?!http:\/\/|https:\/\/)[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$
+        // if it doesn't match, then it's not a valid domain
+        if (
+          !domain.match(/^(?!http:\/\/|https:\/\/)[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/)
+        ) {
+          await client.chat.postEphemeral({
+            token: process.env.SLACK_BOT_TOKEN,
+            user: user,
+            channel: channel,
+            text: "Please provide a valid domain to report",
+          });
+          return;
+        }
+
+        let baseUrl: string;
+
+        if (process.env.NODE_ENV === "production") {
+          baseUrl = "https://api.phish.directory";
+        } else {
+          baseUrl = "http://localhost:3000";
+        }
+
+        // fixme: once api is ready send to api
+
+        sendNewDomainMessage(app, domain).then(() => {
+          client.chat.postEphemeral({
+            token: process.env.SLACK_BOT_TOKEN,
+            user: user,
+            channel: channel,
+            text: `Domain ${domain} has been reported for classification. Thank you!`,
+          });
+        });
+
+        break;
+    }
   } catch (error) {
     blog(`Error in command handler: ${error}`, "error");
   }
