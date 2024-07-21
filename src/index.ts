@@ -173,7 +173,7 @@ app.command(/.*?/, async ({ ack, body, client }) => {
             token: process.env.SLACK_BOT_TOKEN,
             user: user,
             channel: channel,
-            text: "Please provide a valid domain to report",
+            text: "Please provide a valid domain to report (ex: google.com, not http://google.com or www.google.com or google.com/page)",
           });
           return;
         }
