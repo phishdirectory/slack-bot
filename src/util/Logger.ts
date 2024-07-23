@@ -71,11 +71,7 @@ export const clog = async (logMessage, type: LogType) => {
       console.log(colors.magenta(`[CRON]: ${logMessage}`));
       break;
     case "error":
-      console.error(
-        colors.red.bold(
-          `Yo <@S0790GPRA48> deres an error \n\n [ERROR]: ${logMessage}`
-        )
-      );
+      console.error(colors.red.bold(logMessage));
       break;
     default:
       console.log(logMessage);

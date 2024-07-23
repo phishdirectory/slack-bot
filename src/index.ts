@@ -84,7 +84,60 @@ app.action(/.*?/, async (args) => {
           text: `> Domain: ${domain} has been classified as ${classification} by <@${actionUser}>`,
         });
 
+        if (actionUser === "U05NX48GL3T") {
+          await client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: "jasper",
+            channel: feedChannel,
+            timestamp: classmsg.ts,
+          });
+        } else if (actionUser === "U0616280E6P") {
+          await client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: "aram-sq",
+            channel: feedChannel,
+            timestamp: classmsg.ts,
+          });
+        } else {
+          await client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: ":bust_in_silhouette:",
+            channel: feedChannel,
+            timestamp: classmsg.ts,
+          });
+        }
+
         let classTs = classmsg.ts;
+        let classificationEmoji: string;
+
+        switch (classification) {
+          case "postal":
+            classificationEmoji = "mailbox";
+            break;
+          case "banking":
+            classificationEmoji = "bank";
+            break;
+          case "item_scams":
+            classificationEmoji = "customs";
+            break;
+          case "other":
+            classificationEmoji = "question";
+            break;
+          default:
+            classificationEmoji = "grey_question";
+            break;
+        }
+
+        try {
+          await client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: classificationEmoji,
+            channel: feedChannel,
+            timestamp: classTs,
+          });
+        } catch (error) {
+          blog(`Error adding emoji: ${error}`, "error");
+        }
 
         if (rsp.data === "Verdict added") {
           await client.chat.postMessage({
