@@ -1,4 +1,5 @@
 import { App } from "@slack/bolt";
+import { getGitSha } from "../gitSha";
 import { Classification } from "../types";
 
 let reviewChannel;
@@ -98,9 +99,9 @@ export async function sendNewDomainMessage(app: App, domain: String) {
         let ts = result.ts!;
         // @ts-expect-error
         let domain = result.message!.blocks[1].text.text.split("_")[1];
-
-        // console.log(ts);
-        // console.log(domain);
+        let environment = process.env.NODE_ENV;
+        let gitSha = await getGitSha();
+        let npmVersion = process.env.npm_package_version;
 
         // create a function that takes in domain and ts, as well as the classification and then returns the json data
         async function createData(
@@ -188,6 +189,23 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                 ],
                 action_id: "domain_classification",
               },
+            },
+            {
+              type: "context",
+              elements: [
+                {
+                  type: "mrkdwn",
+                  text: `*Running environment:* _${environment}_`,
+                },
+                {
+                  type: "mrkdwn",
+                  text: `*Git SHA:* _${gitSha}_`,
+                },
+                {
+                  type: "mrkdwn",
+                  text: `*NPM Version:* _${npmVersion}_`,
+                },
+              ],
             },
             {
               type: "divider",

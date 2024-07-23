@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
+import { getGitSha } from "../gitSha";
 import { client } from "../index";
 
 import async from "async";
@@ -24,10 +25,17 @@ const messageQueue = async.queue(async (task, callback) => {
 }, 1); // Only one worker to ensure order and rate limit
 
 async function slog(logMessage, type) {
+  let environment = process.env.NODE_ENV;
+  let gitSha = await getGitSha();
+  let npmVersion = process.env.npm_package_version;
+
   const message = {
     channel: process.env.SLACK_LOG_CHANNEL,
     text: logMessage,
     blocks: [
+      {
+        type: "divider",
+      },
       {
         type: "section",
         text: {
@@ -43,9 +51,29 @@ async function slog(logMessage, type) {
         elements: [
           {
             type: "mrkdwn",
+            text: `*Running environment:* _${environment}_`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*Git SHA:* _${gitSha}_`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*NPM Version:* _${npmVersion}_`,
+          },
+        ],
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
             text: `${new Date().toString()}`,
           },
         ],
+      },
+      {
+        type: "divider",
       },
     ],
   };
