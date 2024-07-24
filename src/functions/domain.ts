@@ -48,7 +48,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
         let npmVersion = process.env.npm_package_version;
 
         // create a function that takes in domain and ts, as well as the classification and then returns the json data
-        async function createData(
+        async function createClassificationData(
           domain: String,
           ts: String,
           classification: Classification
@@ -61,7 +61,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
           return JSON.stringify(data);
         }
 
-        async function creareRejectData(domain: String, ts: String) {
+        async function createData(domain: String, ts: String) {
           let data = {
             domain: domain,
             ts: ts,
@@ -112,7 +112,11 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                       text: "Postal",
                       emoji: true,
                     },
-                    value: `${await createData(domain, ts, "postal")}`,
+                    value: `${await createClassificationData(
+                      domain,
+                      ts,
+                      "postal"
+                    )}`,
                   },
                   {
                     text: {
@@ -120,7 +124,11 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                       text: "Banking",
                       emoji: true,
                     },
-                    value: `${await createData(domain, ts, "banking")}`,
+                    value: `${await createClassificationData(
+                      domain,
+                      ts,
+                      "banking"
+                    )}`,
                   },
                   {
                     text: {
@@ -128,7 +136,11 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                       text: "Item Scams",
                       emoji: true,
                     },
-                    value: `${await createData(domain, ts, "item_scams")}`,
+                    value: `${await createClassificationData(
+                      domain,
+                      ts,
+                      "item_scams"
+                    )}`,
                   },
                   {
                     text: {
@@ -136,7 +148,11 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                       text: "Other",
                       emoji: true,
                     },
-                    value: `${await createData(domain, ts, "other")}`,
+                    value: `${await createClassificationData(
+                      domain,
+                      ts,
+                      "other"
+                    )}`,
                   },
                 ],
                 action_id: "domain_classification",
@@ -152,8 +168,18 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                     text: "Reject Domain (Safe)",
                     emoji: true,
                   },
-                  value: `${await creareRejectData(domain, ts)}`,
+                  value: `${await createData(domain, ts)}`,
                   action_id: "reject_domain",
+                },
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "Scan Domain",
+                    emoji: true,
+                  },
+                  value: `${await createData(domain, ts)}`,
+                  action_id: "scan_domain",
                 },
               ],
             },

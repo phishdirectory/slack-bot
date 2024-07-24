@@ -223,6 +223,23 @@ app.action(/.*?/, async (args) => {
         });
 
         break;
+      case "scan_domain":
+        const scan = await axios.post(
+          "https://urlscan.io/api/v1/scan/",
+          {
+            url: domain,
+          },
+          {
+            headers: {
+              "API-Key": process.env.URLSCAN_API_KEY!,
+              Referer: "https://phish.directory",
+            },
+          }
+        );
+
+        console.log(scan);
+
+        break;
       default:
         console.log("Unknown action");
         break;
