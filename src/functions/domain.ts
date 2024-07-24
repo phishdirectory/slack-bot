@@ -165,21 +165,22 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                   type: "button",
                   text: {
                     type: "plain_text",
-                    text: "Reject Domain (Safe)",
-                    emoji: true,
-                  },
-                  value: `${await createData(domain, ts)}`,
-                  action_id: "reject_domain",
-                },
-                {
-                  type: "button",
-                  text: {
-                    type: "plain_text",
                     text: "Scan Domain",
                     emoji: true,
                   },
                   value: `${await createData(domain, ts)}`,
                   action_id: "scan_domain",
+                },
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "Reject Domain (Safe)",
+                    emoji: true,
+                  },
+                  style: "danger",
+                  value: `${await createData(domain, ts)}`,
+                  action_id: "reject_domain",
                 },
               ],
             },

@@ -170,7 +170,6 @@ app.action(/.*?/, async (args) => {
       case "reject_domain":
         // @ts-expect-error
         const rawRData = payload.value;
-        console.log(rawRData);
 
         let rData = JSON.parse(rawRData);
         let rdomain = rData.domain;
@@ -224,20 +223,51 @@ app.action(/.*?/, async (args) => {
 
         break;
       case "scan_domain":
-        const scan = await axios.post(
-          "https://urlscan.io/api/v1/scan/",
-          {
-            url: domain,
-          },
-          {
-            headers: {
-              "API-Key": process.env.URLSCAN_API_KEY!,
-              Referer: "https://phish.directory",
-            },
-          }
-        );
+        // @ts-expect-error
+        const rawSData = payload.value;
 
-        console.log(scan);
+        let sData = JSON.parse(rawSData);
+        let sdomain = sData.domain;
+        let sts = sData.ts;
+
+        let scanurl;
+
+        try {
+          const scan = await axios.post(
+            "https://urlscan.io/api/v1/scan/",
+            {
+              url: sdomain,
+              visibility: "public", // Ensure visibility is set if required
+              tags: ["https://phish.directory", "api.phish.directory"],
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                "API-Key": process.env.URLSCAN_API_KEY!,
+                Referer: "https://phish.directory",
+              },
+            }
+          );
+
+          scanurl = scan.data.result;
+        } catch (error) {
+          console.error(error);
+        }
+
+        await scanurl;
+
+        await client.chat.postMessage({
+          token: process.env.SLACK_BOT_TOKEN,
+          channel: reviewChannel,
+          thread_ts: sts,
+          text: `Yo <@${actionUser}>, I've started scanning _${sdomain}_ for you. You can view the results *<${scanurl}|here>*! (${scanurl})`,
+        });
+
+        await client.chat.postMessage({
+          token: process.env.SLACK_BOT_TOKEN,
+          channel: feedChannel,
+          text: `> Domain _${sdomain}_ has been *scanned* by _<@${actionUser}>_. View the results *<${scanurl}|here>* (${scanurl})`,
+        });
 
         break;
       default:
