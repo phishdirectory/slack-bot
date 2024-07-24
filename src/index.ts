@@ -41,16 +41,13 @@ app.event(/.*/, async ({ event, client }) => {});
 app.action(/.*?/, async (args) => {
   try {
     const { ack, respond, payload, client, body } = args;
-    const user = body.user.id;
-
-    let actionUser = body.user.id!;
 
     await ack();
 
     // @ts-ignore
     switch (payload.action_id) {
       case "domain_classification":
-        // console.log(payload);
+        let actionUser = body.user.id!;
 
         // @ts-expect-error
         let rawData = payload.selected_option.value;
@@ -60,11 +57,15 @@ app.action(/.*?/, async (args) => {
         let ts = data.ts;
         let classification = data.classification;
 
-        await client.chat.delete({
-          token: process.env.SLACK_BOT_TOKEN,
-          channel: reviewChannel,
-          ts: ts,
-        });
+        await client.chat
+          .delete({
+            token: process.env.SLACK_BOT_TOKEN,
+            channel: reviewChannel,
+            ts: ts,
+          })
+          .catch((error) =>
+            blog(`Error deleting chat message: ${error}`, "error")
+          );
 
         let baseUrl: string;
 
@@ -85,21 +86,21 @@ app.action(/.*?/, async (args) => {
         });
 
         if (actionUser === "U05NX48GL3T") {
-          await client.reactions.add({
+          client.reactions.add({
             token: process.env.SLACK_BOT_TOKEN,
             name: "jasper",
             channel: feedChannel,
             timestamp: classmsg.ts,
           });
         } else if (actionUser === "U0616280E6P") {
-          await client.reactions.add({
+          client.reactions.add({
             token: process.env.SLACK_BOT_TOKEN,
             name: "aram-sq",
             channel: feedChannel,
             timestamp: classmsg.ts,
           });
         } else {
-          await client.reactions.add({
+          client.reactions.add({
             token: process.env.SLACK_BOT_TOKEN,
             name: ":bust_in_silhouette:",
             channel: feedChannel,
@@ -128,19 +129,17 @@ app.action(/.*?/, async (args) => {
             break;
         }
 
-        try {
-          await client.reactions.add({
-            token: process.env.SLACK_BOT_TOKEN,
-            name: classificationEmoji,
-            channel: feedChannel,
-            timestamp: classTs,
-          });
-        } catch (error) {
-          blog(`Error adding emoji: ${error}`, "error");
-        }
+        client.reactions.add({
+          token: process.env.SLACK_BOT_TOKEN,
+          name: classificationEmoji,
+          channel: feedChannel,
+          timestamp: classTs,
+        });
+
+        console.log(rsp);
 
         if (rsp.data === "Verdict added") {
-          await client.chat.postMessage({
+          client.chat.postMessage({
             token: process.env.SLACK_BOT_TOKEN,
             channel: feedChannel,
             text: `API Successfully responded with: ${rsp.data}`,
@@ -148,21 +147,21 @@ app.action(/.*?/, async (args) => {
           });
 
           // react to the top level message
-          await client.reactions.add({
+          client.reactions.add({
             token: process.env.SLACK_BOT_TOKEN,
             name: "white_check_mark",
             channel: feedChannel,
             timestamp: classTs,
           });
         } else {
-          await client.chat.postMessage({
+          client.chat.postMessage({
             token: process.env.SLACK_BOT_TOKEN,
             channel: feedChannel,
             text: `API responded with: ${rsp.data}`,
             thread_ts: classTs,
           });
 
-          await client.reactions.add({
+          client.reactions.add({
             token: process.env.SLACK_BOT_TOKEN,
             name: "x",
             channel: feedChannel,
@@ -171,9 +170,21 @@ app.action(/.*?/, async (args) => {
         }
 
         break;
+      case "reject_domain":
+        console.log("DOMAIN REJECTED");
+        break;
+      default:
+        console.log("Unknown action");
+        break;
     }
   } catch (error) {
-    blog(`Error in action handler: ${error}`, "error");
+    blog(
+      `Error in action handler: ${JSON.stringify(
+        error,
+        Object.getOwnPropertyNames(error)
+      )}`,
+      "error"
+    );
   }
 });
 
@@ -196,12 +207,16 @@ app.command(/.*?/, async ({ ack, body, client }) => {
         let dateStartedFormatted =
           moment(dateStarted).format("MM-DD-YY H:m:s A Z");
 
-        await client.chat.postEphemeral({
-          token: process.env.SLACK_BOT_TOKEN,
-          user: user,
-          channel: body.channel_id,
-          text: `Pong! 🏓 \n\n I've been awake for ${uptimeString}, I got up at ${dateStartedFormatted}!`,
-        });
+        await client.chat
+          .postEphemeral({
+            token: process.env.SLACK_BOT_TOKEN,
+            user: user,
+            channel: body.channel_id,
+            text: `Pong! 🏓 \n\n I've been awake for ${uptimeString}, I got up at ${dateStartedFormatted}!`,
+          })
+          .catch((error) =>
+            blog(`Error posting ephemeral message: ${error}`, "error")
+          );
         break;
       case "/report":
         let domain = body.text;

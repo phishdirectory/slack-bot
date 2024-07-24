@@ -35,62 +35,6 @@ export async function sendNewDomainMessage(app: App, domain: String) {
               text: `*Domain*: _${domain}_`,
             },
           },
-          {
-            type: "divider",
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `Pick a classification for this domain (${domain})`,
-            },
-            accessory: {
-              type: "static_select",
-              placeholder: {
-                type: "plain_text",
-                text: "Select an item",
-                emoji: true,
-              },
-              options: [
-                {
-                  text: {
-                    type: "plain_text",
-                    text: "Postal",
-                    emoji: true,
-                  },
-                  value: `${domain}`,
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: "Banking",
-                    emoji: true,
-                  },
-                  value: `${domain}`,
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: "Item Scams",
-                    emoji: true,
-                  },
-                  value: `${domain}`,
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: "Other",
-                    emoji: true,
-                  },
-                  value: `${domain}`,
-                },
-              ],
-              action_id: "domain_classification",
-            },
-          },
-          {
-            type: "divider",
-          },
         ],
       })
       .then(async (result) => {
@@ -124,6 +68,9 @@ export async function sendNewDomainMessage(app: App, domain: String) {
           text: "reading this? be paitent, im under heavy stress",
           blocks: [
             {
+              type: "divider",
+            },
+            {
               type: "section",
               text: {
                 type: "mrkdwn",
@@ -136,9 +83,6 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                 type: "mrkdwn",
                 text: `*Domain*: _${domain}_`,
               },
-            },
-            {
-              type: "divider",
             },
             {
               type: "section",
@@ -189,6 +133,21 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                 ],
                 action_id: "domain_classification",
               },
+            },
+            {
+              type: "actions",
+              elements: [
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "Reject Domain (Safe)",
+                    emoji: true,
+                  },
+                  value: "reject_domain",
+                  action_id: "reject_domain",
+                },
+              ],
             },
             {
               type: "context",
