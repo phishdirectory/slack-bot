@@ -41,14 +41,13 @@ app.event(/.*/, async ({ event, client }) => {});
 app.action(/.*?/, async (args) => {
   try {
     const { ack, respond, payload, client, body } = args;
+    let actionUser = body.user.id!;
 
     await ack();
 
     // @ts-ignore
     switch (payload.action_id) {
       case "domain_classification":
-        let actionUser = body.user.id!;
-
         // @ts-expect-error
         let rawData = payload.selected_option.value;
         let data = JSON.parse(rawData);
@@ -82,7 +81,7 @@ app.action(/.*?/, async (args) => {
         let classmsg = await client.chat.postMessage({
           token: process.env.SLACK_BOT_TOKEN,
           channel: feedChannel,
-          text: `> Domain: ${domain} has been classified as ${classification} by <@${actionUser}>`,
+          text: `> *Domain:* _${domain}_ has been *classified* as _${classification}_ by _<@${actionUser}>_`,
         });
 
         if (actionUser === "U05NX48GL3T") {
@@ -136,8 +135,6 @@ app.action(/.*?/, async (args) => {
           timestamp: classTs,
         });
 
-        console.log(rsp);
-
         if (rsp.data === "Verdict added") {
           client.chat.postMessage({
             token: process.env.SLACK_BOT_TOKEN,
@@ -171,7 +168,60 @@ app.action(/.*?/, async (args) => {
 
         break;
       case "reject_domain":
-        console.log("DOMAIN REJECTED");
+        // @ts-expect-error
+        const rawRData = payload.value;
+        console.log(rawRData);
+
+        let rData = JSON.parse(rawRData);
+        let rdomain = rData.domain;
+        let rts = rData.ts;
+
+        await client.chat
+          .delete({
+            token: process.env.SLACK_BOT_TOKEN,
+            channel: reviewChannel,
+            ts: rts,
+          })
+          .catch((error) =>
+            blog(`Error deleting chat message: ${error}`, "error")
+          );
+
+        let rclassmsg = await client.chat.postMessage({
+          token: process.env.SLACK_BOT_TOKEN,
+          channel: feedChannel,
+          text: `> *Domain:* _${rdomain}_ has been *marked* as _Safe_ by _<@${actionUser}>_`,
+        });
+
+        if (actionUser === "U05NX48GL3T") {
+          client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: "jasper",
+            channel: feedChannel,
+            timestamp: rclassmsg.ts,
+          });
+        } else if (actionUser === "U0616280E6P") {
+          client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: "aram-sq",
+            channel: feedChannel,
+            timestamp: rclassmsg.ts,
+          });
+        } else {
+          client.reactions.add({
+            token: process.env.SLACK_BOT_TOKEN,
+            name: ":bust_in_silhouette:",
+            channel: feedChannel,
+            timestamp: rclassmsg.ts,
+          });
+        }
+
+        client.reactions.add({
+          token: process.env.SLACK_BOT_TOKEN,
+          name: "large_green_circle",
+          channel: feedChannel,
+          timestamp: rclassmsg.ts,
+        });
+
         break;
       default:
         console.log("Unknown action");

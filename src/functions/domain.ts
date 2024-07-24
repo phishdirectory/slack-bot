@@ -61,6 +61,14 @@ export async function sendNewDomainMessage(app: App, domain: String) {
           return JSON.stringify(data);
         }
 
+        async function creareRejectData(domain: String, ts: String) {
+          let data = {
+            domain: domain,
+            ts: ts,
+          };
+          return JSON.stringify(data);
+        }
+
         await app.client.chat.update({
           token: process.env.SLACK_BOT_TOKEN,
           channel: reviewChannel,
@@ -144,7 +152,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                     text: "Reject Domain (Safe)",
                     emoji: true,
                   },
-                  value: "reject_domain",
+                  value: `${await creareRejectData(domain, ts)}`,
                   action_id: "reject_domain",
                 },
               ],
