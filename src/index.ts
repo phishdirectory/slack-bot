@@ -250,24 +250,28 @@ app.action(/.*?/, async (args) => {
           );
 
           scanurl = scan.data.result;
+          await scanurl;
+
+          await client.chat.postMessage({
+            token: process.env.SLACK_BOT_TOKEN,
+            channel: reviewChannel,
+            thread_ts: sts,
+            text: `Yo <@${actionUser}>, I've started scanning _${sdomain}_ for you. You can view the results *<${scanurl}|here>*! (${scanurl})`,
+          });
+
+          await client.chat.postMessage({
+            token: process.env.SLACK_BOT_TOKEN,
+            channel: feedChannel,
+            text: `> Domain _${sdomain}_ has been *scanned* by _<@${actionUser}>_. View the results *<${scanurl}|here>* (${scanurl})`,
+          });
         } catch (error) {
-          console.error(error);
+          await client.chat.postMessage({
+            token: process.env.SLACK_BOT_TOKEN,
+            channel: reviewChannel,
+            thread_ts: sts,
+            text: `Heya <@${actionUser}>, I tried scanning _${sdomain}_ but it failed. Here's the error: ${error}`,
+          });
         }
-
-        await scanurl;
-
-        await client.chat.postMessage({
-          token: process.env.SLACK_BOT_TOKEN,
-          channel: reviewChannel,
-          thread_ts: sts,
-          text: `Yo <@${actionUser}>, I've started scanning _${sdomain}_ for you. You can view the results *<${scanurl}|here>*! (${scanurl})`,
-        });
-
-        await client.chat.postMessage({
-          token: process.env.SLACK_BOT_TOKEN,
-          channel: feedChannel,
-          text: `> Domain _${sdomain}_ has been *scanned* by _<@${actionUser}>_. View the results *<${scanurl}|here>* (${scanurl})`,
-        });
 
         break;
       default:
