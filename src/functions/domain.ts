@@ -1,6 +1,7 @@
 import { App } from "@slack/bolt";
 import { getGitSha } from "../gitSha";
 import { Classification } from "../types";
+import metrics from "../ metrics";
 
 let reviewChannel;
 let feedChannel;
@@ -14,6 +15,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 export async function sendNewDomainMessage(app: App, domain: String) {
+  metrics.increment("slack.newDomainMessage");
   try {
     const result = await app.client.chat
       .postMessage({
@@ -51,7 +53,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
         async function createClassificationData(
           domain: String,
           ts: String,
-          classification: Classification
+          classification: Classification,
         ) {
           let data = {
             domain: domain,
@@ -115,7 +117,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                     value: `${await createClassificationData(
                       domain,
                       ts,
-                      "postal"
+                      "postal",
                     )}`,
                   },
                   {
@@ -127,7 +129,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                     value: `${await createClassificationData(
                       domain,
                       ts,
-                      "banking"
+                      "banking",
                     )}`,
                   },
                   {
@@ -139,7 +141,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                     value: `${await createClassificationData(
                       domain,
                       ts,
-                      "item_scams"
+                      "item_scams",
                     )}`,
                   },
                   {
@@ -151,7 +153,7 @@ export async function sendNewDomainMessage(app: App, domain: String) {
                     value: `${await createClassificationData(
                       domain,
                       ts,
-                      "other"
+                      "other",
                     )}`,
                   },
                 ],

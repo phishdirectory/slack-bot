@@ -6,6 +6,8 @@ import axios from "axios";
 import colors from "colors";
 import express from "express";
 import moment from "moment";
+import responseTime from "response-time";
+import { CronJob } from "cron";
 
 import { indexEndpoint } from "./endpoints";
 import { healthEndpoint } from "./endpoints/health";
@@ -13,6 +15,7 @@ import { newDomainEndpoint } from "./endpoints/newDomain";
 import { sendNewDomainMessage } from "./functions/domain";
 import { t } from "./lib/templates";
 import { blog, slog } from "./util/Logger";
+import metrics from "./ metrics";
 
 let reviewChannel: string;
 let feedChannel: string;
@@ -36,9 +39,13 @@ const app = new App({
   receiver,
 });
 
-app.event(/.*/, async ({ event, client }) => {});
+app.event(/.*/, async ({ event, client }) => {
+  metrics.increment(`slack.event.${event.type}`);
+});
 
 app.action(/.*?/, async (args) => {
+  // @ts-expect-error
+  metrics.increment(`slack.action.${args.payload.action_id}`);
   try {
     const { ack, respond, payload, client, body } = args;
     let actionUser = body.user.id!;
@@ -63,7 +70,7 @@ app.action(/.*?/, async (args) => {
             ts: ts,
           })
           .catch((error) =>
-            blog(`Error deleting chat message: ${error}`, "error")
+            blog(`Error deleting chat message: ${error}`, "error"),
           );
 
         let baseUrl: string;
@@ -75,7 +82,7 @@ app.action(/.*?/, async (args) => {
         }
 
         let rsp = await axios.post(
-          `${baseUrl}/domain/verdict?key=${process.env.SECRET_KEY}&domain=${domain}&suser=${actionUser}&verdict=${classification}`
+          `${baseUrl}/domain/verdict?key=${process.env.SECRET_KEY}&domain=${domain}&suser=${actionUser}&verdict=${classification}`,
         );
 
         let classmsg = await client.chat.postMessage({
@@ -182,7 +189,7 @@ app.action(/.*?/, async (args) => {
             ts: rts,
           })
           .catch((error) =>
-            blog(`Error deleting chat message: ${error}`, "error")
+            blog(`Error deleting chat message: ${error}`, "error"),
           );
 
         let rclassmsg = await client.chat.postMessage({
@@ -246,7 +253,7 @@ app.action(/.*?/, async (args) => {
                 "API-Key": process.env.URLSCAN_API_KEY!,
                 Referer: "https://phish.directory",
               },
-            }
+            },
           );
 
           scanurl = scan.data.result;
@@ -279,23 +286,28 @@ app.action(/.*?/, async (args) => {
         break;
     }
   } catch (error) {
+    metrics.increment("slack.actions.error");
     blog(
       `Error in action handler: ${JSON.stringify(
         error,
-        Object.getOwnPropertyNames(error)
+        Object.getOwnPropertyNames(error),
       )}`,
-      "error"
+      "error",
     );
   }
 });
 
 app.command(/.*?/, async ({ ack, body, client }) => {
+  metrics.increment("slack.commands.received");
+
   try {
     await ack();
 
     let user = body.user_id;
     let channel = body.channel_id;
     let command = body.command;
+
+    metrics.increment(`slack.command.${command}`);
 
     switch (command) {
       case "/ping":
@@ -316,7 +328,7 @@ app.command(/.*?/, async ({ ack, body, client }) => {
             text: `Pong! 🏓 \n\n I've been awake for ${uptimeString}, I got up at ${dateStartedFormatted}!`,
           })
           .catch((error) =>
-            blog(`Error posting ephemeral message: ${error}`, "error")
+            blog(`Error posting ephemeral message: ${error}`, "error"),
           );
         break;
       case "/report":
@@ -369,6 +381,7 @@ app.command(/.*?/, async ({ ack, body, client }) => {
         break;
     }
   } catch (error) {
+    metrics.increment("slack.commands.error");
     blog(`Error in command handler: ${error}`, "error");
   }
 });
@@ -381,7 +394,23 @@ receiver.router.get("/newDomain", (req, res) => {
   newDomainEndpoint(req, res, app);
 });
 
+receiver.router.use(
+  responseTime((req, res, time) => {
+    const stat = (req.method + "/" + req.url?.split("/")[1])
+      .toLowerCase()
+      .replace(/[:.]/g, "")
+      .replace(/\//g, "_");
+
+    const httpCode = res.statusCode;
+    const timingStatKey = `http.response.${stat}`;
+    const codeStatKey = `http.response.${stat}.${httpCode}`;
+    metrics.timing(timingStatKey, time);
+    metrics.increment(codeStatKey, 1);
+  }),
+);
+
 app.use(async ({ payload, next }) => {
+  metrics.increment(`slack.request.${payload.type}`);
   await next();
 });
 
@@ -391,25 +420,47 @@ axios.interceptors.request.use((config: any) => {
   return config;
 });
 
+axios.interceptors.response.use((res: any) => {
+  const stat = (res.config.method + "/" + res.config.url?.split("/")[1])
+    .toLowerCase()
+    .replace(/[:.]/g, "")
+    .replace(/\//g, "_");
+
+  const httpCode = res.status;
+  const timingStatKey = `http.request.${stat}`;
+  const codeStatKey = `http.request.${stat}.${httpCode}`;
+  metrics.timing(
+    timingStatKey,
+    performance.now() - res.config.metadata.startTs,
+  );
+  metrics.increment(codeStatKey, 1);
+
+  return res;
+});
+
 const logStartup = async (app: App) => {
   let env = process.env.NODE_ENV;
   slog(t("app.startup", { environment: env }), "info");
 };
 
 app.start(process.env.PORT || 3000).then(async () => {
+  metrics.increment("app.startup");
   await logStartup(app);
   console.log(
-    colors.bgCyan(`⚡️ Bolt app is running in env ${process.env.NODE_ENV}`)
+    colors.bgCyan(`⚡️ Bolt app is running in env ${process.env.NODE_ENV}`),
   );
 });
 
-// new CronJob(
-//   "0 * * * * *",
-//   function()
-//   null,
-//   true,
-//   "America/New_York"
-// );
+// Heartbeat
+new CronJob(
+  "0 * * * * *",
+  async function () {
+    metrics.increment("heartbeat");
+  },
+  null,
+  true,
+  "America/New_York",
+);
 
 const client: any = app.client;
 export { app, client };
